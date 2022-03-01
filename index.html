@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en" id="html">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	
+	<link rel="icon" href="data/graph.png">
+	
+	<link rel="stylesheet" type="text/css" href="css/bootstrap.min.css">
+	<link rel="stylesheet" type="text/css" href="css/styles.css">
+	
+	<script src="https://cdn.jsdelivr.net/npm/@svgdotjs/svg.js@3.0/dist/svg.min.js"></script>
+	<script src="js/jquery-3.5.1.min.js"></script>
+	<script src="js/bootstrap.min.js"></script>
+	<script src="js/script.js"></script>
+</head>
+<body>
+	<noscript>
+		<div>
+			Oops! This website needs JavaScript to run!
+			<br>¡UPS! ¡Este sitio web necesita JavaScript para funcionar!
+			<br>Oops! Ce site Web a besoin de JavaScript pour fonctionner!
+			<br>おっと！ このウェブサイトを実行するにはJavaScriptが必要です！
+			<br>哎呀！ 这个网站需要JavaScript才能使用！
+		</div>
+	</noscript>
+	<!-- base is not visible until js/script.js makes it visible, so if JavaScript is blocked, base will not show up -->
+	<div class="container-fluid d-none" id="base">
+		<div class="d-none" id="updateDiv">
+			<div id="updateNotification"></div>
+			<button id="dismissUpdateButton"></button>
+		</div>
+		<div id="languageDiv">
+            <!-- Both are float right, so put hideLanguageDiv first -->
+            <button id="hideLanguageDivButton"></button>
+			<select id="select0">
+				<option value="en-US">English</option>
+				<option value="es-ES">Español</option>
+				<option value="fr-FR">Français</option>
+				<option value="ja-JP">日本語</option>
+				<option value="zh-CN">中文</option>
+			</select>
+		</div>
+		<div class="row" id="row1">
+			<!-- On large screens (>= 992 px) and larger, take half of screen, and on medium screens or smaller, take entire screen -->
+			<div class="col-lg-6 col-md-12" id="colA">
+                <div id="rowA0">
+                    <button id="toggleNightModeButton"></button>
+                </div>
+				<div id="rowA1">
+					<div id="dataDisplay">
+						<!--dataDisplay: dealt with in script.js-->
+					</div>
+				</div>	<!-- End rowA1 -->
+				
+				<div id="rowA2">
+                    <input id="displayInsignificantEntriesCheckbox" type="checkbox">
+					<label for="displayInsignificantEntriesCheckbox" id="displayInsignificantEntriesCheckboxLabel"></label>
+				</div> <!-- End rowA2 -->
+				
+				<div id="rowA3">
+					<!-- Dealt with in script.js -->
+				</div>
+			</div>		
+			<!-- On larger screens and larger, take half of screen, and on medium screens or smaller, do not display -->
+			<div class = "col-6" id="colB">
+				<img id="usMap" class="img-fluid" src="data/us-map.png"></img>
+                <div id="rowB1">
+                    <input id="indicateUpdatedStatesCheckbox" type="checkbox">
+					<label for="indicateUpdatedStatesCheckbox" id="indicateUpdatedStatesCheckboxLabel"></label>
+                </div>
+			</div>
+		</div>
+        <!-- End row1 -->
+		<div id="row2">
+			<div id="chartControlDiv">
+				<select id="select2"></select>
+				<button id="resetChartsButton" type="button"></button>
+			</div>
+			
+			<div class="chart" id="totalCasesChart"></div>
+			<div class="chart" id="newCasesChart"></div>
+			<div class="chart" id="totalCasesPer100000PeopleChart"></div>
+			<div class="chart" id="newCasesPer100000PeopleChart"></div>
+			<div class="chart" id="totalDeathsChart"></div>
+			<div class="chart" id="newDeathsChart"></div>
+		</div>
+        <!-- End row2 -->
+        
+        <!-- timeTravelDivFiller fills in where timeTravelDiv was when timeTravelDiv is detached -->
+        <div id="timeTravelDivFiller"></div>
+        
+        <div id="timeTravelDiv">
+            <div id="timeTravelRangeLabel"></div>
+            <input type="range" class="form-range" id="timeTravelRange">
+        </div>
+	</div>
+    <!-- End container-fluid (base)-->
+</body>
+</html>
