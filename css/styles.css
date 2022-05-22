@@ -150,7 +150,7 @@ noscript div {
     position: relative;
 }
 
-input[type="checkbox"], #rowA2 label, #rowB1 label, .chart label {
+input[type="checkbox"], #rowB1 label, .chart label {
     vertical-align: top;
     margin-bottom: 0px;
 }
@@ -199,8 +199,8 @@ input[type="checkbox"], #rowA2 label, #rowB1 label, .chart label {
 }
 
 /* Elements in dataDisplayHeader, circles on map, state data boxes, etc... are not highlightable */
-select, button, #dataDisplayHeader *, #displayInsignificantEntriesCheckboxLabel, .circle, .state-data-box div, 
-#dataDisplayHeader *, #indicateUpdatedStatesCheckbox, #indicateUpdatedStatesCheckboxLabel, #resetChartsButton,
+select, button, #dataDisplayHeader *,  .circle, .state-data-box div,  #dataDisplayHeader *, #indicateUpdatedStatesCheckbox, 
+#indicateUpdatedStatesCheckboxLabel, #resetChartsButton,
 .chart *, #timeTravelRangeLabel {
 	-webkit-touch-callout: none;
 	-webkit-user-select: none;

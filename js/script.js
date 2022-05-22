@@ -73,7 +73,6 @@
 	function init() {
 		body = document.getElementsByTagName( "body" )[0];
 		isMobile = false;
-		var displayInsignificantEntries = false;
 		try {
 			var indexOfLeftBrace = document.cookie.indexOf( "{" );
 			var indexOfRightBrace = document.cookie.indexOf( "}" );
@@ -116,7 +115,6 @@
 		catch ( error ) {
 			userSettings = {};
             userSettings.language = "en-US";
-            userSettings.displayInsignificantEntries = false;
             userSettings.indicateUpdatedStates = false;
             userSettings.isNightMode = false;
             userSettings.hideLanguageDiv = false;
@@ -294,9 +292,6 @@
         
         dataDisplay.onmouseleave = displayNationalStats;
         
-        displayInsignificantEntriesCheckbox.onclick = toggleDisplayInsignificantEntries;
-		setDisplayInsignificantEntriesCheckboxLabelInnerHTML();
-
         // Set options for select2
         select2.onchange = select2Change;
 		for ( var i = 0; i < states.length; i++ ) {
@@ -321,9 +316,6 @@
 			
 			dataDisplayHeaderHTML = dataDisplayHeaderHTMLs[languageIndex()];
             
-			if ( userSettings.displayInsignificantEntries ) {
-				displayInsignificantEntriesCheckbox.checked = true;
-			}
 			refreshDataDisplay();
 			
             setTimeTravelRangeLabelInnerHTML();
@@ -738,52 +730,6 @@
 		}
 		return sorted;
 	}
-
-	function toggleDisplayInsignificantEntries() {
-        var pinnedState;
-        if ( userSettings.pinnedState ) {
-            pinnedState = userSettings.pinnedState;
-            // Unpin state to get rows in proper order
-            pinState( userSettings.pinnedState );
-        }
-        
-        if ( displayInsignificantEntries() ) {
-            for ( var i = 1; i < 56; i++ ) {
-                var row = dataDisplay.children[i];
-                if ( row.className == "row d-none" ) {
-                    // Display row that were previously hidden
-                    row.className = "row";
-                }
-                row.displayRank = i;
-                row.children[0].innerHTML = i;
-            }
-        }
-        else {
-            var pos = 1;
-            for ( var i = 1; i < 56; i++ ) {
-                var row = dataDisplay.children[i];
-                if ( !isStateSignificant( row.state ) && pinnedState != row.state ) {
-                    // Hide row that was previously displayed if it is insignificant
-                    row.displayRank = 0;
-                    row.className = "row d-none";
-                    row.children[0].innerHTML = 0;
-                }
-                else if ( row.className == "row" ) {
-                    row.displayRank = pos;
-                    row.children[0].innerHTML = pos++;
-                }
-            }
-        }
-        recolorRows();
-        
-        if ( pinnedState ) {
-            // Re-pin state
-            pinState( pinnedState );
-        }
-        
-        userSettings.displayInsignificantEntries = displayInsignificantEntries();
-		updateCookies();
-	}
 	
     function toggleIndicateUpdatedStates() {
         for ( var i = 2; i <= 56; i++ ) {
@@ -801,35 +747,12 @@
     }
     
     function pinState( state, rowToPin ) {
-        if ( ( userSettings.pinnedState != state && userSettings.pinnedState ) || userSettings.pinnedState == state ) {
-            // Place pinnedRow back in default unpinned position
-            var pinnedRow = dataDisplay.children[1];
-            dataDisplay.removeChild( pinnedRow );
-            dataDisplay.insertBefore( pinnedRow, dataDisplay.children[pinnedRow.trueRank] );
-            
-            if ( displayInsignificantEntries() || isStateSignificant( pinnedRow.state ) ) {
-                pinnedRow.children[0].innerHTML = pinnedRow.displayRank;
-            }
-            else {
-                pinnedRow.className = "row d-none";
-                pinnedRow.displayRank = 0;
-                recolorRow( pinnedRow );
-                
-                // Decrement displayRank of all rows after pinnedRow
-                var nextRow = pinnedRow.nextSibling;
-                while ( nextRow ) {
-                    if ( nextRow.className == "row" ) {
-                        nextRow.displayRank--;
-                        if ( nextRow.displayRank <= 6 ) {
-                            recolorRow( nextRow );
-                        }
-                        nextRow.children[0].innerHTML = nextRow.displayRank;
-                    }
-                    nextRow = nextRow.nextSibling;
-                }
-            }
-        }
+        // Place pinnedRow back in default unpinned position
+        var pinnedRow = dataDisplay.children[1];
+        dataDisplay.removeChild( pinnedRow );
+        dataDisplay.insertBefore( pinnedRow, dataDisplay.children[pinnedRow.displayRank] );
         
+        pinnedRow.children[0].innerHTML = pinnedRow.displayRank;
         
         if ( userSettings.pinnedState != state ) {
             if ( !rowToPin ) {
@@ -839,39 +762,6 @@
                         rowToPin = dataDisplay.children[i];
                         break;
                     }
-                }
-            }
-            
-            if ( rowToPin.className != "row" ) {
-                // Make rowToPin visible
-                rowToPin.className = "row";
-                // Determine displayRank by locating last visible row before this row
-                var lastPreviousVisibleRow;
-                for ( var i = 1; i < rowToPin.trueRank; i++ ) {
-                    var temp = dataDisplay.children[i];
-                    if ( temp.className == "row" ) {
-                        lastPreviousVisibleRow = temp;
-                    }
-                }
-                if ( lastPreviousVisibleRow ) {
-                    rowToPin.displayRank = lastPreviousVisibleRow.displayRank + 1;
-                }
-                else {
-                    rowToPin.displayRank = 1;
-                }
-                recolorRow( rowToPin );
-                
-                // Increment displayRank of visible rows after rowToPin
-                var nextRow = rowToPin.nextSibling;
-                while ( nextRow ) {
-                    if ( nextRow.className == "row" ) {
-                        nextRow.displayRank++;
-                        if ( nextRow.displayRank <= 7 ) {
-                            recolorRow( nextRow );
-                        }
-                        nextRow.children[0].innerHTML = nextRow.displayRank;
-                    }
-                    nextRow = nextRow.nextSibling;
                 }
             }
             
@@ -957,19 +847,9 @@
                 if ( entry[0] == userSettings.pinnedState ) {
                     pinnedRow = row;
                 }
-    			
-                if ( !displayInsignificantEntries() && !isEntrySignificant( entry ) && row.state != userSettings.pinnedState ) {
-                    // Hide row
-    				row.setAttribute( "class", "row d-none" );
-                    row.displayRank = 0;
-    			}
-                else {
-                    // Display row
-                    row.setAttribute( "class", "row" );
-                    row.displayRank = displayRank++;
-                }
-                row.trueRank = i + 1;
-                
+
+                row.displayRank = displayRank++;
+                // Unhighlight row
                 row.style.backgroundColor = "";
                 setRowInnerHTML( row, entry );
     		}
@@ -994,17 +874,8 @@
                     event.preventDefault();
                 });
     			
-                if ( !displayInsignificantEntries() && !isEntrySignificant( entry ) && row.state != userSettings.pinnedState ) {
-                    // Hide row
-    				row.setAttribute( "class", "row d-none" );
-                    row.displayRank = 0;
-    			}
-                else {
-                    // Display row
-                    row.setAttribute( "class", "row" );
-                    row.displayRank = displayRank++;
-                }
-                row.trueRank = i + 1;
+                row.setAttribute( "class", "row" );
+                row.displayRank = displayRank++;
                 
                 setRowInnerHTML( row, entry );
     			dataDisplay.appendChild( row );
@@ -1268,31 +1139,6 @@
 		rowA1.style.borderWidth = fontSize / 12 + "px";
 		// Get scroll position of rowA1 with respect to its height
 		readjustDataDisplayTextFonts();
-		
-		// Now on rowA2
-        if ( isUSMapVisible ) {
-            // Width/height of displayInsignificantEntriesCheckbox is 1.4 * fontSize of displayInsignificantEntriesCheckboxLabel
-            // fontSize of displayInsignificantEntriesCheckboxLabel = w / 80
-			displayInsignificantEntriesCheckbox.style.width = 0.0175 * w + "px";
-			displayInsignificantEntriesCheckbox.style.height = 0.0175 * w + "px";
-            displayInsignificantEntriesCheckbox.style.marginRight = 0.00375 * w + "px";
-			displayInsignificantEntriesCheckboxLabel.style.lineHeight = 0.0175 * w + "px";
-            displayInsignificantEntriesCheckboxLabel.style.fontSize = 0.0125 * w + "px";
-            
-            // For some reason, height of rowA2 won't update
-            rowA2.style.height = 0.0175 * w + "px";
-		}
-		else {
-            // fontSize of displayInsignificantEntriesCheckboxLabel = w / 40
-			displayInsignificantEntriesCheckbox.style.width = 0.035 * w + "px";
-			displayInsignificantEntriesCheckbox.style.height = 0.035 * w + "px";
-            displayInsignificantEntriesCheckbox.style.marginRight = 0.0075 * w + "px";
-			displayInsignificantEntriesCheckboxLabel.style.lineHeight = 0.035 * w + "px";
-            displayInsignificantEntriesCheckboxLabel.style.fontSize = 0.025 * w + "px";
-            
-            rowA2.style.height = 0.035 * w + "px";
-		}
-		
 		var colAWidth;
 		if ( isUSMapVisible ) {
 			colAWidth = 0.485 * baseWidth;
@@ -1301,8 +1147,6 @@
 			colAWidth = 0.97 * baseWidth;
 		}
 		
-		displayInsignificantEntriesCheckboxLabel.style.width = 0.95 * colAWidth;
-		
 		// Now on rowA3
 		readjustrowA3TextFonts();
 		// No marginBottom for rowA3, because there is nothing below it
@@ -1310,7 +1154,6 @@
 		// Now on colB
 		loadColB();
         if ( isUSMapVisible ) {
-            // Same thing as with displayInsignificantEntriesCheckbox
             // fontSize of indicateUpdatedStatesCheckbox = w / 100
             indicateUpdatedStatesCheckbox.style.width = 0.014 * w + "px";
 			indicateUpdatedStatesCheckbox.style.height = 0.014 * w + "px";
@@ -1324,11 +1167,10 @@
 		var rowA1Height;
 		if ( isUSMapVisible ) {
             // Make it so that height of colA equals the height of colB
-            // parseFloat( rowA0.style.height ) + [rowA0 marginBottom] + rowA1Height + [rowA1 marginBottom] + [rowA2 height]
+            // parseFloat( rowA0.style.height ) + [rowA0 marginBottom] + rowA1Height + [rowA1 marginBottom]
             // [rowA0 marginBottom] = [rowA1 marginBottom] = 1.5% * colAWidth
-            // [rowA2 height] = 0.175 * w
             // usMap.height = 0.75 * usMap.width, or 0.75 * (0.475 * w) = 0.35625 * w
-			rowA1Height = 0.35625 * w - parseFloat( rowA0.style.height ) - 0.0175 * w - rowA3.offsetHeight - 0.03 * colAWidth;
+			rowA1Height = 0.35625 * w - parseFloat( rowA0.style.height ) - rowA3.offsetHeight - 0.03 * colAWidth;
 		}
 		else {
             // Make it so that h = 1/2 of width of rowA1
@@ -3136,7 +2978,6 @@
             var checkbox = chart.checkbox;
             checkbox.style.width = 1.4 * fontSize + "px";
             checkbox.style.height = 1.4 * fontSize + "px";
-            // marginRight is significantly higher for checkbox for charts than for displayInsignificantEntriesCheckbox
             checkbox.style.marginRight = 0.6 * fontSize + "px";
             checkbox.checked = false;
             
@@ -3855,10 +3696,6 @@
         }
 	}
 	
-	function displayInsignificantEntries() {
-        return displayInsignificantEntriesCheckbox.checked;
-	}
-	
 	function isUpdatedToday( state ) {
 		var entry = dataFromToday.getEntry( state );
 		var yesterdayEntry = dataFromYesterday.getEntry( state );
@@ -3968,7 +3805,6 @@
         
         setLastUpdatedOnText();
         setToggleNightModeButtonInnerHTML();
-        setDisplayInsignificantEntriesCheckboxLabelInnerHTML();
         setIndicateUpdatedStatesCheckboxLabelInnerHTML();
         setResetChartsButtonInnerHTML();
         setTimeTravelRangeLabelInnerHTML();
@@ -4010,7 +3846,6 @@
             
             rowA1.style.borderColor = "";
             rowA1.style.color = "";
-            displayInsignificantEntriesCheckboxLabel.style.color = "";
             rowA3.style.color = "";
             for ( var i = 0; i < colB.children.length; i++ ) {
                 var child = colB.children[i];
@@ -4041,7 +3876,6 @@
             
             rowA1.style.borderColor = lg;
             rowA1.style.color = lg;
-            displayInsignificantEntriesCheckboxLabel.style.color = lg;
             rowA3.style.color = lg;
             for ( var i = 0; i < colB.children.length; i++ ) {
                 var child = colB.children[i];
@@ -4164,17 +3998,6 @@
         else {
             toggleNightModeButton.innerHTML = nightModeToggleNightModeButtonInnerHTMLs[languageIndex()];
         }
-    }
-    
-    var displayInsignificantEntriesCheckboxLabelInnerHTMLs = [
-            "Include states/territories with less than 20,000 total cases.",
-            "Incluir estados/territorios con menos de 20.000 casos totales.",
-            "包括少于20,000个累计确诊的州/领土。",
-            "Inclure les états/territoires avec moins de 20 000 cas au total.",
-            "累積診断が20,000未満の州/領土を含む。"
-    ];
-    function setDisplayInsignificantEntriesCheckboxLabelInnerHTML() {
-        displayInsignificantEntriesCheckboxLabel.innerHTML = displayInsignificantEntriesCheckboxLabelInnerHTMLs[languageIndex()];
     }
     
     function setLastUpdatedOnText() {
