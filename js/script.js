@@ -1147,9 +1147,9 @@
 			colAWidth = 0.97 * baseWidth;
 		}
 		
-		// Now on rowA3
-		readjustrowA3TextFonts();
-		// No marginBottom for rowA3, because there is nothing below it
+		// Now on rowA2
+		readjustrowA2TextFonts();
+		// No marginBottom for rowA2, because there is nothing below it
 		
 		// Now on colB
 		loadColB();
@@ -1168,9 +1168,10 @@
 		if ( isUSMapVisible ) {
             // Make it so that height of colA equals the height of colB
             // parseFloat( rowA0.style.height ) + [rowA0 marginBottom] + rowA1Height + [rowA1 marginBottom]
-            // [rowA0 marginBottom] = [rowA1 marginBottom] = 1.5% * colAWidth
+            // [rowA0 marginBottom] = 1% * colAWidth
+            // [rowA1 marginBottom] = 1.5% * colAWidth
             // usMap.height = 0.75 * usMap.width, or 0.75 * (0.475 * w) = 0.35625 * w
-			rowA1Height = 0.35625 * w - parseFloat( rowA0.style.height ) - rowA3.offsetHeight - 0.03 * colAWidth;
+			rowA1Height = 0.35625 * w - parseFloat( rowA0.style.height ) - rowA2.offsetHeight - 0.025 * colAWidth;
 		}
 		else {
             // Make it so that h = 1/2 of width of rowA1
@@ -1236,7 +1237,7 @@
 		dataDisplay.style.fontSize = w / 55 + "px";
 	}
 	
-	function readjustrowA3TextFonts() {
+	function readjustrowA2TextFonts() {
 		var w = baseWidth;
 		var fontSizes;
 		if ( isUSMapVisible ) {
@@ -1246,8 +1247,8 @@
 			fontSizes = [w / 30, w / 50, w / 50, w / 50, w / 50, w / 50, w / 70];
 		}
 		var padding = w / 800 + "px";
-		for ( var i = 0; i < rowA3.children.length; i++ ) {
-			var div = rowA3.children[i];
+		for ( var i = 0; i < rowA2.children.length; i++ ) {
+			var div = rowA2.children[i];
 			div.style.fontSize = fontSizes[i] + "px";
 			div.style.paddingBottom = padding;
 			if ( i == 0 ) {
@@ -1361,8 +1362,8 @@
         strings.unshift( translate( stateFromAbbreviation( state ) ) + ":" );
         strings.push( lastUpdatedOn );
 		
-        fillRowA3StringsMissingInfo( strings );
-        fillRowA3( strings );
+        fillRowA2StringsMissingInfo( strings );
+        fillRowA2( strings );
 	}
 	
 	function displayNationalStats() {
@@ -1476,11 +1477,11 @@
 		}
         strings.push( lastUpdatedOn );
 
-        fillRowA3StringsMissingInfo( strings );
-        fillRowA3( strings );
+        fillRowA2StringsMissingInfo( strings );
+        fillRowA2( strings );
 	}
 
-    function fillRowA3StringsMissingInfo( strings ) {
+    function fillRowA2StringsMissingInfo( strings ) {
         if ( !isTimeTravelActive() ) {
             switch ( languageIndex() ) {
                 case 0: {
@@ -1531,14 +1532,14 @@
         }
     }
 
-    function fillRowA3( strings ) {
+    function fillRowA2( strings ) {
         if ( strings.length != 7 ) {
-            throw new Error( "rowA3 must have 7 strings" );
+            throw new Error( "rowA2 must have 7 strings" );
         }
         
         var w = baseWidth;
 	    
-        if ( rowA3.children.length == 0 ) {
+        if ( rowA2.children.length == 0 ) {
             if ( isUSMapVisible ) {
                 var fontSizes;
 				fontSizes = [w / 60, w / 100, w / 100, w / 100, w / 100, w / 100, w / 140];
@@ -1559,15 +1560,14 @@
 					div.style.fontWeight = "bold";
 				}
 				
-				rowA3.appendChild( div );
+				rowA2.appendChild( div );
 			}
         }
         else {
             for ( var i = 0; i < 7; i++ ) {
-				var div = rowA3.children[i];
+				var div = rowA2.children[i];
 				strings[i] = strings[i].replaceAll( "+-", "-" );
 				div.innerHTML = strings[i];
-
 			}
         }
     }
@@ -3846,7 +3846,7 @@
             
             rowA1.style.borderColor = "";
             rowA1.style.color = "";
-            rowA3.style.color = "";
+            rowA2.style.color = "";
             for ( var i = 0; i < colB.children.length; i++ ) {
                 var child = colB.children[i];
                 if ( child.className == "state-data-box" ) {
@@ -3876,7 +3876,7 @@
             
             rowA1.style.borderColor = lg;
             rowA1.style.color = lg;
-            rowA3.style.color = lg;
+            rowA2.style.color = lg;
             for ( var i = 0; i < colB.children.length; i++ ) {
                 var child = colB.children[i];
                 if ( child.className == "state-data-box" ) {
