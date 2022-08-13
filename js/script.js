@@ -7,9 +7,9 @@
 	var lastUpdatedOn, timestamp;
 	
 	var allData, dataFromToday, entriesFromToday, calendarFromToday;
-    var dataFromYesterday, entriesFromYesterday, calendarFromYesterday;
+    var dataFromYesterday, calendarFromYesterday;
     var dataDisplayHeaderHTML;
-    var changeDataFromTodayIndex;
+    var changeDataFromTodayIndexTimeout;
     
     const dataDisplayHeaderHTMLs = [
         '<div id="dataDisplayHeader" class="row">'
@@ -270,7 +270,7 @@
 				}	
 			});
 		};
-        var checkForUpdates = setInterval( doCheckForUpdates, 10000 );
+        setInterval( doCheckForUpdates, 10000 );
 		
         // Set up everything, make base visible, then readjustSizes()
 		dismissUpdateButton.onclick = function() {
@@ -309,6 +309,7 @@
             var dataFromJSON = JSON.parse( data );
 			processData( dataFromJSON );
             setLastUpdatedOnText();
+			
             
 			// If last-updated.txt hasn't caught up with data.json, then timestamp will be "ahead" of last-updated.txt.
 			// timestamp is bound to data.
@@ -382,7 +383,7 @@
 				finishedSetup = true;
 			});
             
-            var doChangeDataFromTodayIndex = function() {
+            var changeDataFromTodayIndex = function() {
                 var value = parseInt( timeTravelRange.value );
                 if ( value == allData.length - 1 ) {
                     value = -1;
@@ -441,7 +442,7 @@
                     }
                 }
 
-                changeDataFromTodayIndex = null;
+                changeDataFromTodayIndexTimeout = null;
                 updateCookies();
             }
             timeTravelRange.oninput = function() {
@@ -453,8 +454,8 @@
                 setTimeTravelRangeLabelInnerHTML( value );
                 
                 // Only enable doChangeDataFromTodayIndex to execute once every 0.25 seconds
-                if ( changeDataFromTodayIndex == null ) {
-                    changeDataFromTodayIndex = setTimeout( doChangeDataFromTodayIndex, 250 );
+                if ( changeDataFromTodayIndexTimeout == null ) {
+                    changeDataFromTodayIndexTimeout = setTimeout( changeDataFromTodayIndex, 250 );
                 }
             }
             if ( !isMobile ) {
@@ -525,10 +526,6 @@
     
     function dateAndTimeFromCalendarFromToday() {
         return dateAndTimeFromCalendar( calendarFromToday );
-    }
-    
-    function dateFromCalendarFromYesterday() {
-        return dateAndTimeFromCalendar( calendarFromYesterday );
     }
     
     function dateAndTimeFromCalendar( calendar ) {
@@ -623,7 +620,7 @@
 			tiebreakerOrder = [5, 4, 2, 1, 3];
 		}
 		
-		var reverse = userSettings.sortingMethod < 0;
+		var reverse = userSettings.sortingMethod > 0;
 		for ( var i = 0; i < tiebreakerOrder.length; i++ ) {
 			var tiebreaker = tiebreakerOrder[i];
             var var1, var2;
@@ -659,76 +656,8 @@
 	
 	// Mergesort
 	function sortEntries() {
-		entriesFromToday = sortEntries2( entriesFromToday, 0, entriesFromToday.length - 1 );
-        if ( userSettings.dataFromTodayIndex >= 0 ) {
-            allData[userSettings.dataFromTodayIndex].e = entriesFromToday;
-        }
-		else {
-            allData[allData.length - 1].e = entriesFromToday;
-        }
-	}
-	
-	function sortEntries2( entries, l, h ) {
-		// Subarray length is more than 1
-		if ( l < h ) {
-			var m = Math.trunc( ( l + h ) / 2 );
-			entries = sortEntries2( entries, l, m );
-			entries = sortEntries2( entries, m + 1, h );
-			entries = merge( entries, l, h );
-		}
-		
-		return entries;
-	}
-	
-	function merge( entries, l, h ) {
-		if ( l >= h )
-			return;
-		var m = Math.trunc( ( l + h ) / 2 );
-		var index1 = l;
-		var index2 = m + 1;
-        // Create copy of entries
-		var sorted = JSON.parse( JSON.stringify( entries ) );
-		var index3 = l;
-		while ( index1 <= m && index2 <= h ) {
-			var entry1 = entries[index1];
-			var entry2 = entries[index2];
-			var c = compareEntries( entry1, entry2 );
-			// If entry1 is larger
-			if ( c > 0 ) {
-				sorted[index3] = entry1;
-				index3++;
-				index1++;
-			}
-			// If entry2 is larger
-			else if ( c < 0 ) {
-				sorted[index3] = entry2;
-				index3++;
-				index2++;
-			}
-			else {
-				// Add both
-				sorted[index3] = entry1;
-				index3++;
-				sorted[index3] = entry2;
-				index3++;
-				
-				index1++;
-				index2++;
-			}
-		}
-		while ( index1 <= m ) {
-			var entry1 = entries[index1];
-			sorted[index3] = entry1;
-			index3++;
-			index1++;
-		}
-		while ( index2 <= h ) {
-			var entry2 = entries[index2];
-			sorted[index3] = entry2;
-			index3++;
-			index2++;
-		}
-		return sorted;
+		entriesFromToday.sort( compareEntries );
+		return;
 	}
 	
     function toggleIndicateUpdatedStates() {
@@ -1265,7 +1194,6 @@
         var newCasesAverage = sevenDayAverageInNewCases( state );
         var newCasesPer100000PeopleAverage = sevenDayAverageInNewCasesPer100000People( state );
 		var changeInDeaths = entry[3] - yesterdayEntry[3];
-        var yesterday =  dateFromCalendarFromYesterday();
         
 		var strings;
         var language = userSettings.language;
@@ -1364,6 +1292,12 @@
 		
         fillRowA2StringsMissingInfo( strings );
         fillRowA2( strings );
+		if ( rowA2.children[6].children.length == 2 ) {
+			var href = rowA2.children[6].children[0];
+			href.onclick = function() {
+				timeTravelRange.value = allData.length - 2 + "";
+			}
+		}
 	}
 	
 	function displayNationalStats() {
@@ -1372,7 +1306,6 @@
         var newCasesAverage = sevenDayAverageInNewCases();
         var newCasesPer100000PeopleAverage = sevenDayAverageInNewCasesPer100000People();
 		var changeInDeaths = dataFromToday.n[2] - dataFromYesterday.n[2];
-        var yesterday = dateFromCalendarFromYesterday();
         
 		var strings;
         var language = userSettings.language;
@@ -1479,6 +1412,13 @@
 
         fillRowA2StringsMissingInfo( strings );
         fillRowA2( strings );
+		if ( rowA2.children[6].children.length == 2 ) {
+			var href = rowA2.children[6].children[0];
+			href.onclick = function() {
+				timeTravelRange.value = allData.length - 2 + "";
+				timeTravelRange.oninput();
+			}
+		}
 	}
 
     function fillRowA2StringsMissingInfo( strings ) {
@@ -1841,8 +1781,6 @@
     var ranges = [[0, 25], [25, 75], [75, 150], [150, 300]];
     var correspondingColors = [[zeroCases, mild], [mild, moderate], [moderate, severe], [severe, extreme]];
     function setColorOfCircle( circle ) {
-        var state = circle.state;
-        var entry = getEntryFromToday( state );
         var averageCasesPer100000 = sevenDayAverageInNewCasesPer100000People( circle.state );
 
         var color1, color2;
@@ -1857,8 +1795,14 @@
             }
         }
         if ( !color1 ) {
-            circle.style.backgroundColor = "rgb(60,0,40)";
-            circle.style.color = "white";
+			if ( averageCasesPer100000 > 0 ) {
+				circle.style.backgroundColor = "rgb(60,0,40)";
+            	circle.style.color = "white";
+			}
+            else {
+				circle.style.backgroundColor = "rgb(0,240,0)";
+            	circle.style.color = "";
+			}
             return;
         }
         
@@ -2419,7 +2363,13 @@
 			chart.toYCoordinate = function( y ) {
 				var self = this;
 				var h = self.height;
-				return -0.8 * h / self.yAxisRange * y + 0.85 * h;
+				var yCoordinate = -0.8 * h / self.yAxisRange * y + 0.85 * h;
+				if ( yCoordinate >= 1 ) {
+					return yCoordinate;
+				}
+				else {
+					return 1;
+				}
 			};
             chart.toY = function( yCoordinate ) {
                 var self = this;
@@ -2523,19 +2473,38 @@
                         dateOffset++;
                     }
                 }
+                else {
+                    while ( numberOfPoints > 730 ) {
+                        chart.numbers.shift();
+                        chart.years.shift();
+                        chart.months.shift();
+                        chart.days.shift();
+                        
+                        chart.sevenDayMovingAverages.shift();
+                        numberOfPoints--;
+                        dateOffset++;
+                    }
+                }
             }
             chart.xAxisRange = numberOfPoints;
             
             // Determine max number
-            var maxNumber = 0;
-            for ( var i = 0; i < numberOfPoints; i++ ) {
-                if ( chart.numbers[i] > maxNumber ) {
-                    maxNumber = chart.numbers[i];
-                }
-                if ( chart.field % 2 == 1 && chart.sevenDayMovingAverages[i] > maxNumber ) {
-                    maxNumber = chart.sevenDayMovingAverages[i];
-                }
-            }
+            // var maxNumber = 0;
+            // for ( var i = 0; i < numberOfPoints; i++ ) {
+            //     if ( chart.numbers[i] > maxNumber ) {
+            //         maxNumber = chart.numbers[i];
+            //     }
+            //     if ( chart.field % 2 == 1 && chart.sevenDayMovingAverages[i] > maxNumber ) {
+            //         maxNumber = chart.sevenDayMovingAverages[i];
+            //     }
+            // }
+			var maxNumber;
+			if ( chart.field % 2 == 1 ) {
+				maxNumber = Math.max( ...chart.sevenDayMovingAverages );
+			}
+			else {
+				maxNumber = Math.max( ...chart.numbers );
+			}
             
             // Determine chart.yAxisRange
 			if ( maxNumber > 0 ) {
@@ -2620,6 +2589,9 @@
                 else if ( child.isBar ) {
                     removeChild = false;
                 }
+                // else if ( chart.sevenDayMovingAveragePolyline && child == chart.sevenDayMovingAveragePolyline.node ) {
+                //     removeChild = false;
+                // }
                 
                 if ( removeChild ) {
                     node.removeChild( child );
@@ -2637,6 +2609,9 @@
             barWidth = Math.min( 1, ( chart.toXCoordinate( 2 ) - chart.toXCoordinate( 1 ) ) * 0.9 );
         }
         var strokeWidth = barWidth * 1.5;
+        // var strokeWidth = ( chart.toXCoordinate( 2 ) - chart.toXCoordinate( 1 ) ) * 0.45;
+        // strokeWidth = Math.max( strokeWidth, width / 400 );
+        // strokeWidth = Math.min( strokeWidth, width / 200 );
         if ( chart.field % 2 == 1 ) {
             strokeWidth = Math.max( strokeWidth, width / 500 );
             strokeWidth = Math.min( strokeWidth, width / 250 );
@@ -2716,7 +2691,7 @@
                         draw.node.removeChild( chart.bars[i].node );
                         draw.node.insertBefore( chart.bars[i].node, chart.xAxis.node );
                     }
-                    
+                
                     chart.bars[i].defaultColor = barColor;
                     chart.bars[i].node.isBar = true;
                 }
@@ -2745,6 +2720,7 @@
             
             var polylineStrokeColor = ( ["blue", "#6600ff",  "#aa0000"] )[( chart.field - 1 ) / 2];
             var polylineStrokeColorNightMode = ( ["#a5a5ff", "#cdabff",  "#ffa7a7"] )[( chart.field - 1 ) / 2];
+            // var polylineStrokeColor = ( ["deepskyblue", "#b390fb", "red"] )[( chart.field - 1 ) / 2];
 			chart.sevenDayMovingAveragePolyline.stroke( { color: polylineStrokeColor, 
                 width: strokeWidth, linecap: 'round', linejoin: 'round' } );
             
@@ -3083,23 +3059,23 @@
             var innerHTMLs;
             switch ( languageIndex() ) {
                 case 0: {
-                    innerHTMLs = ["All time", "Last 120 days"];
+                    innerHTMLs = ["Last 2 years", "Last 120 days"];
                     break;
                 }
                 case 1: {
-                    innerHTMLs = ["Desde el comienzo", "Últimos 120 días"];
+                    innerHTMLs = ["Últimos 2 años", "Últimos 120 días"];
                     break;
                 }
                 case 2: {
-                    innerHTMLs = ["所有时间", "最近120天"];
+                    innerHTMLs = ["最近2年", "最近120天"];
                     break;
                 }
                 case 3: {
-                    innerHTMLs = ["Toute la période", "120 derniers jours"];
+                    innerHTMLs = ["2 dernières années", "120 derniers jours"];
                     break;
                 }
                 case 4: {
-                    innerHTMLs = ["全期間", "最新の120日"]
+                    innerHTMLs = ["最新の120年", "最新の120日"]
                 }
             }
             chart.dateRangeSelect.innerHTML = "";
@@ -3191,7 +3167,7 @@
                 finalHTML = finalHTML.replaceAll( "{y}", self.years[i] );
                 finalHTML = finalHTML.replaceAll( "{m}", self.months[i] );
                 finalHTML = finalHTML.replaceAll( "{d}", self.days[i] );
-                finalHTML = finalHTML.replaceAll( "{n}", number.toLocaleString( language ) );
+                finalHTML = finalHTML.replaceAll( "{n}", number.toLocaleString( userSettings.language ) );
                 if ( number == 1 ) {
                     // Go to singular form instead of plural
                     switch ( languageIndex() ) {
@@ -3246,12 +3222,12 @@
                         if ( sevenDayMovingAverage == parseInt( sevenDayMovingAverage) ) {
                             sevenDayMovingAverage = parseInt( sevenDayMovingAverage );
                         }
-                        finalHTML += sevenDayMovingAverage.toLocaleString( language );
+                        finalHTML += sevenDayMovingAverage.toLocaleString( userSettings.language );
                     }
                     else {
                         // Round to nearest integer
                         var sevenDayMovingAverage = sevenDayMovingAverages[i];
-                        finalHTML += parseInt( sevenDayMovingAverage + 0.5 ).toLocaleString( language );
+                        finalHTML += parseInt( sevenDayMovingAverage + 0.5 ).toLocaleString( userSettings.language );
                     }
                 }
                 
@@ -3261,7 +3237,7 @@
                         if ( self.currentlyHighlightedBar ) {
                             self.currentlyHighlightedBar.fill( self.currentlyHighlightedBar.defaultColor );
                         }
-                        
+                
                         var bar = self.bars[i];
                         // Highlight current bar
                         if ( !self.isNightMode ) {
@@ -3394,7 +3370,7 @@
                 self.labels.forEach( label => label.style.opacity = 0.4 );
                 self.ticks.forEach( tick => tick.opacity( 0.4 ) );
                 if ( self.bars && !self.checkbox.checked ) {
-                    // Reduce opacity of bars, but opacity from displaying of 7 day moving average polyline has higher priority
+                    // Reduce opacity of bars
                     self.bars.forEach( bar => bar.opacity( 0.4 ) );
                 }
                 
@@ -3454,7 +3430,7 @@
                         // Non-decimal charts: round to nearest integer
         				y = parseInt( y + 0.5 );
                     }
-                    self.horizontalLineLabel.innerHTML = y.toLocaleString( language );
+                    self.horizontalLineLabel.innerHTML = y.toLocaleString( userSettings.language );
                 }
             }
             
@@ -3999,77 +3975,140 @@
             toggleNightModeButton.innerHTML = nightModeToggleNightModeButtonInnerHTMLs[languageIndex()];
         }
     }
-    
+
     function setLastUpdatedOnText() {
         var dateAndTime = dateAndTimeFromCalendarFromToday();
-        if ( userSettings.dataFromTodayIndex == -1 ) {
-            switch ( languageIndex() ) {
-                case 0: {
-                    lastUpdatedOn = "Last updated on " + dateAndTime + ". Source of data: "
-                        + "<a target='_blank' href='http://worldometers.info/coronavirus/country/us'>"
-                        + "worldometers.info/coronavirus/country/us</a>. NOT FOR COMMERICAL USE.";
-                    break;
-                }
-                case 1: {
-                    lastUpdatedOn = "Ultima actualización en " + dateAndTime + ". Fuente "
-                        + "de datos: <a target='_blank' href='http://worldometers.info/coronavirus/country/us'>"
-                        + "worldometers.info/coronavirus/country/us</a>. NO ES PARA USO COMERCIAL.";
-                    break;
-                }
-                case 2: {
-                    lastUpdatedOn = "最后更新时间：" + dateAndTime + "。 数据来源："
-                        + "<a target='_blank' href='http://worldometers.info/coronavirus/country/us'>"
-                        + "worldometers.info/coronavirus/country/us</a>。 不用于商业用途。";
-                    break;
-                }
-                case 3: {
-                    lastUpdatedOn = "Dernière mise à jour à " + dateAndTime + ". "
-                        + "Source de données: <a target='_blank' href='http://worldometers.info/coronavirus/country/us'>"
-                        + "worldometers.info/coronavirus/country/us</a>. PAS POUR UN USAGE COMMERCIAL.";
-                    break;
-                }
-                case 4: {
-                    lastUpdatedOn = "最終更新日は" + dateAndTime + "です。データのソース:"
-                        + "<a target='_blank' href='http://worldometers.info/coronavirus/country/us'>"
-                        + "worldometers.info/coronavirus/country/us</a>。商用目的ではありません。";
-                    break;
-                }
-            }
+        if ( !isTimeTravelActive() ) {
+			var dataFromToday = allData[allData.length - 1];
+			var dataFromYesterday = allData[allData.length - 2];
+			isThereAnUpdateFromYesterday = dataFromToday.n[0] != dataFromYesterday.n[0] || dataFromToday.n[1] != dataFromYesterday.n[1];
+			if ( isThereAnUpdateFromYesterday ) {
+				dateAndTime = dateAndTime.slice( 0, dateAndTime.indexOf( "," ) );
+				switch( languageIndex() ) {
+					case 0: {
+						lastUpdatedOn = "There is no new data for today (" + dateAndTime + ") yet. Check back later, "
+							+ "or <a href='javascript:;' id='goToYesterdayLink'>go back to yesterday</a>. "
+						break;
+					}
+					case 1: {
+						lastUpdatedOn = "No hay nuevos datos para hoy (" + dateAndTime + ") todavía. Vuelve más tarde, "
+							+ "o <a href='javascript:;' id='goToYesterdayLink'>Viaje en el tiempo hasta ayer</a>. "
+						break;
+					}
+					case 2: {
+						lastUpdatedOn = "今天(" + dateAndTime + ")还没有新的数据。稍后再看，或者<a href='javascript:;' id='goToYesterdayLink'>"
+							+ "回到昨天</a>。"
+						break;
+					}
+					case 3: {
+						lastUpdatedOn = "Il n'y a pas encore de nouvelles données pour aujourd'hui (" + dateAndTime 
+							+ "). Revenez plus tard, ou <a href='javascript:;' id='goToYesterdayLink'>revenez à hier</a>. "
+						break;
+					}
+					case 4: {
+						lastUpdatedOn = "今日(" + dateAndTime + ")の新しいデータはまだありません。後でチェックするか、"
+							+"<a href='javascript:;' id='goToYesterdayLink'>昨日に戻るか</a>。"
+						break;
+					}
+				}
+			}
+			else {
+				switch ( languageIndex() ) {
+					case 0: {
+						lastUpdatedOn = "Last updated on " + dateAndTime + ". ";
+						break;
+					}
+					case 1: {
+						lastUpdatedOn = "Ultima actualización en " + dateAndTime + ". ";
+						break;
+					}
+					case 2: {
+						lastUpdatedOn = "最后更新时间：" + dateAndTime + "。"
+					}
+					case 3: {
+						lastUpdatedOn = "Dernière mise à jour à " + dateAndTime + ". ";
+						break;
+					}
+					case 4: {
+						lastUpdatedOn = "最終更新日は" + dateAndTime + "です。"
+						break;
+					}
+				}
+			}
+
+			switch ( languageIndex() ) {
+				case 0: {
+					lastUpdatedOn += "Source of data: "
+						+ "<a target='_blank' href='https://worldometers.info/coronavirus/country/us'>"
+						+ "worldometers.info/coronavirus/country/us</a>. NOT FOR COMMERICAL USE.";
+					break;
+				}
+				case 1: {
+					lastUpdatedOn += "Fuente de datos: "
+						+ "<a target='_blank' href='https://worldometers.info/coronavirus/country/us'>"
+						+ "worldometers.info/coronavirus/country/us</a>. NO ES PARA USO COMERCIAL.";
+					break;
+				}
+				case 2: {
+					lastUpdatedOn += "数据来源："
+						+ "<a target='_blank' href='https://worldometers.info/coronavirus/country/us'>"
+						+ "worldometers.info/coronavirus/country/us</a>。不用于商业用途。";
+					break;
+				}
+				case 3: {
+					lastUpdatedOn += "Source de données: "
+						+ "<a target='_blank' href='https://worldometers.info/coronavirus/country/us'>"
+						+ "worldometers.info/coronavirus/country/us</a>. PAS POUR UN USAGE COMMERCIAL.";
+					break;
+				}
+				case 4: {
+					lastUpdatedOn += "データのソース:"
+						+ "<a target='_blank' href='https://worldometers.info/coronavirus/country/us'>"
+						+ "worldometers.info/coronavirus/country/us</a>。商用目的ではありません。";
+					break;
+				}
+			}
         }
         else {
             switch ( languageIndex() ) {
                 case 0: {
                     lastUpdatedOn = "Displayed data is as of " + dateAndTime + ". Source of data: "
-                        + "<a target='_blank' href='http://worldometers.info/coronavirus/country/us'>"
+                        + "<a target='_blank' href='https://worldometers.info/coronavirus/country/us'>"
                         + "worldometers.info/coronavirus/country/us</a>. NOT FOR COMMERICAL USE.";
                     break;
                 }
                 case 1: {
                     lastUpdatedOn = "Los datos mostrados son a partir de " + dateAndTime + ". Fuente "
-                        + "de datos: <a target='_blank' href='http://worldometers.info/coronavirus/country/us'>"
-                        + "worldometers.info/coronavirus/country/us</a>. NO ES PARA USO COMERCIAL.";
+                        + "de datos: <a target='_blank' href='https://worldometers.info/coronavirus/country/us'>"
+                        + "worldometers.info/coronavirus/country/us</a>. NO ES "
+						+ "PARA USO COMERCIAL.";
                     break;
                 }
                 case 2: {
                     lastUpdatedOn = "显示的数据截至" + dateAndTime + "。 数据来源："
-                        + "<a target='_blank' href='http://worldometers.info/coronavirus/country/us'>"
+                        + "<a target='_blank' href='https://worldometers.info/coronavirus/country/us'>"
                         + "worldometers.info/coronavirus/country/us</a>。 不用于商业用途。";
                     break;
                 }
                 case 3: {
                     lastUpdatedOn = "Les données affichées sont en date du " + dateAndTime + ". "
-                        + "Source de données: <a target='_blank' href='http://worldometers.info/coronavirus/country/us'>"
-                        + "worldometers.info/coronavirus/country/us</a>. PAS POUR UN USAGE COMMERCIAL.";
+                        + "Source de données: <a target='_blank' href='https://worldometers.info/coronavirus/country/us'>"
+                        + "worldometers.info/coronavirus/country/us</a>. PAS "
+						+ "POUR UN USAGE COMMERCIAL.";
                     break;
                 }
                 case 4: {
                     lastUpdatedOn = "表示されているデータは" + dateAndTime + "現在のものです。データのソース:"
-                        + "<a target='_blank' href='http://worldometers.info/coronavirus/country/us'>"
+                        + "<a target='_blank' href='https://worldometers.info/coronavirus/country/us'>"
                         + "worldometers.info/coronavirus/country/us</a>。商用目的ではありません。";
                     break;
                 }
             }
         }
+
+		if ( isTimeTravelActive() || isThereAnUpdateFromYesterday ) {
+			lastUpdatedOn += "</br>";
+		}
     }
     
     var indicateUpdatedStatesInnerHTMLs = [
