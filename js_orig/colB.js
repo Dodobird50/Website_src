@@ -151,7 +151,7 @@ _.loadColB = function() {
 		circle.state = state;
 		_.colB.setColorOfCircle( circle );
 		var circleLeft, circleTop, circleWidth;
-		if ( _.colB.indicateUpdatedStates() && isUpdatedToday( circle.state ) ) {
+		if ( _.colB.indicateUpdatedStates() && _.isUpdatedToday( circle.state ) ) {
 			circle.innerHTML = "✔";
 		}
 		else {

@@ -250,18 +250,18 @@ _.chart.setupNumbers = function( chart, state ) {
 				chart.xAxisRange--;
 			}
 		}
-		else {
-			while ( chart.xAxisRange > 730 ) {
-				chart.numbers.shift();
-				chart.years.shift();
-				chart.months.shift();
-				chart.days.shift();
-				
-				chart.sevenDayMovingAverages.shift();
-				chart.dateOffset++;
-				chart.xAxisRange--;
-			}
+	}
+	while ( chart.xAxisRange > 730 ) {
+		chart.numbers.shift();
+		chart.years.shift();
+		chart.months.shift();
+		chart.days.shift();
+		
+		if ( chart.sevenDayMovingAverages ) {
+			chart.sevenDayMovingAverages.shift();
 		}
+		chart.dateOffset++;
+		chart.xAxisRange--;
 	}
 }
 _.chart.setupYAxisRange = function( chart ) {
@@ -1101,7 +1101,7 @@ _.chart.reflectMouseMove = function( chart, x ) {
 	}
 	
 	
-	if ( chart.field % 2 == 1 && chart.checkbox.checked && ( i >= 6 || chart.dateRange != 0 ) ) {
+	if ( chart.field % 2 == 1 && chart.checkbox.checked && ( i + chart.dateOffset >= 6 ) ) {
 		var sevenDayMovingAverages = chart.sevenDayMovingAverages;
 		switch ( _.languageIndex() ) {
 			case 0: {
