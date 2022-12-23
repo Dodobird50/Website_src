@@ -14,141 +14,106 @@ _.isUpdatedToday = function( state ) {
 	return entry[1] - yesterdayEntry[1] > 0 || entry[3] - yesterdayEntry[3] > 0;
 }
 
-_.sevenDayAverageInNewCases = function( state, index ) {
+var getIndex = function( index ) {
 	if ( index == undefined ) {
 		if ( !_.isTimeTravelActive() ) {
-			index = _.allData.length - 2;
+			return _.allData.length - 2;
 		}
 		else {
-			index = _.userSettings.dataFromTodayIndex;
+			return _.userSettings.dataFromTodayIndex;
 		}
-	}
-	
-	if ( index < 7 ) {
-		return null;
-	}
-
-	if ( !state ) {
-		state = "USA";
-	}
-
-	var casesDataAnomalyInvolved = false;
-	var casesDataAnomaliesForState = _.casesDataAnomalies[state];
-	if ( casesDataAnomaliesForState ) {
-		for ( var i = index - 6; i <= index; i++ ) {
-			if ( casesDataAnomaliesForState.has( i ) ) {
-				casesDataAnomalyInvolved = true;
-				break;
-			}
-		}
-	}
-
-	if ( !casesDataAnomalyInvolved ) {
-		var one, two;
-		if ( state == "USA" ) {
-			one = _.allData[index].n[0];
-			two = _.allData[index - 7].n[0];
-		}
-		else {
-			one = _.allData[index].getEntry( state )[1];
-			two = _.allData[index - 7].getEntry( state )[1];
-		}
-		var ret = parseInt( ( one - two ) / 7 + 0.5 );
 	}
 	else {
-		var numDays = 0;
-		var totalNewCases = 0;
-		for ( var i = index - 6; i <= index; i++ ) {
-			if ( casesDataAnomaliesForState.has( i ) ) {
-				continue;
-			}
-
-			numDays++;
-			if ( !state || state == "USA" ) {
-				totalNewCases += _.allData[i].n[0] - _.allData[i - 1].n[0];
-			}
-			else {
-				totalNewCases += one = _.allData[i].getEntry( state )[1] - _.allData[i - 1].getEntry( state )[1];
-			}
-		}
-
-		var ret = parseInt( totalNewCases / numDays + 0.5 );
-	}
-
-	if ( ret == -0 ) {
-		return 0;
-	}
-	else {
-		return ret;
+		return index;
 	}
 }
 
-_.sevenDayAverageInNewCasesPer100000People = function( state, index ) {
-	if ( index == undefined ) {
-		if ( !_.isTimeTravelActive() ) {
-			index = _.allData.length - 2;
-		}
-		else {
-			index = _.userSettings.dataFromTodayIndex;
-		}
-	}
+_.sevenDayAverageInNewCases = function( state, index ) {
+	index = getIndex( index );
 	
 	if ( index < 7 ) {
 		return null;
 	}
+	if ( !state ) {
+		state = "USA";
+	}
 
+	var casesDataAnomaliesForState = _.casesDataAnomalies[state];
+	if ( casesDataAnomaliesForState[index] ) {
+		return _.sevenDayAverageInNewCases( state, index - 1 );
+	}
+
+	var numDays = 0;
+	var sum = 0;
+	for ( var i = index - 6; i <= index; i++ ) {
+		var dataAnomaly = casesDataAnomaliesForState[i];
+		if ( dataAnomaly && dataAnomaly[0] ) {
+			continue;
+		}
+
+		numDays++;
+		var departure = dataAnomaly ? dataAnomaly[1] : 0;
+		if ( state == "USA" ) {
+			sum += _.allData[i].n[0] - _.allData[i - 1].n[0] + departure;
+		}
+		else {
+			sum += one = _.allData[i].getEntry( state )[1] - _.allData[i - 1].getEntry( state )[1] + departure;
+		}
+	}
+
+	var ret = parseInt( sum / numDays + 0.5 );
+	return ret == -0 ? 0 : ret;
+}
+
+_.sevenDayAverageInNewCasesPer100000People = function( state, index ) {
+	index = getIndex( index );
+	
+	if ( index < 7 ) {
+		return null;
+	}
 	if ( !state ) {
 		state = "USA";
 	}
 	
-	var casesDataAnomalyInvolved = false;
 	var casesDataAnomaliesForState = _.casesDataAnomalies[state];
-	if ( casesDataAnomaliesForState ) {
-		for ( var i = index - 6; i <= index; i++ ) {
-			if ( casesDataAnomaliesForState.has( i ) ) {
-				casesDataAnomalyInvolved = true;
-				break;
-			}
-		}
+	if ( casesDataAnomaliesForState[index] ) {
+		return _.sevenDayAverageInNewCasesPer100000People( state, index - 1 );
 	}
 
-	if ( !casesDataAnomalyInvolved ) {
-		var one, two;
+	var numDays = 0;
+	var sum = 0;
+	var maxIndex = _.allData.length - 1;
+	for ( var i = index - 6; i <= index; i++ ) {
+		var dataAnomaly = casesDataAnomaliesForState[i];
+		if ( dataAnomaly && dataAnomaly[0] ) {
+			continue;
+		}
+
+		numDays++;
+		var departure;
 		if ( state == "USA" ) {
-			one = _.allData[index].n[1];
-			two = _.allData[index - 7].n[1];
-		}
-		else {
-			one = _.allData[index].getEntry( state )[2];
-			two = _.allData[index - 7].getEntry( state )[2];
-		}
-
-		var average = ( one - two ) / 7;
-		// Round to nearest tenth
-		var ret = parseInt( average * 10 + 0.5 ) / 10;
-	}
-	else {
-		var numDays = 0;
-		var sum = 0;
-		for ( var i = index - 6; i <= index; i++ ) {
-			if ( casesDataAnomaliesForState.has( i ) ) {
-				continue;
-			}
-
-			numDays++;
-			if ( !state || state == "USA" ) {
-				sum += _.allData[i].n[1] - _.allData[i - 1].n[1];
+			if ( dataAnomaly ) {
+				var ratio = ( _.allData[maxIndex].n[1] ) / ( _.allData[maxIndex].n[0] );
+				departure = ratio * dataAnomaly[1];
 			}
 			else {
-				sum += one = _.allData[i].getEntry( state )[2] - _.allData[i - 1].getEntry( state )[2];
+				departure = 0;
 			}
+			sum += _.allData[i].n[1] - _.allData[i - 1].n[1] + departure;
 		}
-
-		var average = sum / numDays;
-		// Round to nearest tenth
-		var ret = parseInt( average * 10 + 0.5 ) / 10;
+		else {
+			if ( dataAnomaly ) {
+				var ratio = _.allData[maxIndex].getEntry( state )[2] / _.allData[maxIndex].getEntry( state )[1];
+				departure = ratio * dataAnomaly[1];
+			}
+			else {
+				departure = 0;
+			}
+			sum += one = _.allData[i].getEntry( state )[2] - _.allData[i - 1].getEntry( state )[2] + departure;
+		}
 	}
 
+	var ret = parseInt( sum / numDays * 10 + 0.5 ) / 10;
 	if ( ret == -0 ) {
 		return 0;
 	}
@@ -158,77 +123,36 @@ _.sevenDayAverageInNewCasesPer100000People = function( state, index ) {
 }
 
 _.sevenDayAverageInNewDeaths = function( state, index ) {
-	if ( index == undefined ) {
-		if ( !_.isTimeTravelActive() ) {
-			index = _.allData.length - 2;
-		}
-		else {
-			index = _.userSettings.dataFromTodayIndex;
-		}
-	}
+	index = getIndex( index );
 	
 	if ( index < 7 ) {
 		return null;
 	}
-
 	if ( !state ) {
 		state = "USA";
 	}
 
-	var deathsDataAnomalyInvolved = false;
 	var deathsDataAnomaliesForState = _.deathsDataAnomalies[state];
-	if ( deathsDataAnomaliesForState ) {
-		for ( var i = index - 6; i <= index; i++ ) {
-			if ( deathsDataAnomaliesForState.has( i ) ) {
-				deathsDataAnomalyInvolved = true;
-				break;
-			}
+	var numDays = 0;
+	var sum = 0;
+	for ( var i = index - 6; i <= index; i++ ) {
+		var dataAnomaly = deathsDataAnomaliesForState[i];
+		if ( dataAnomaly && dataAnomaly[0] ) {
+			continue;
 		}
-	}
 
-	if ( !deathsDataAnomalyInvolved ) {
-		var one, two;
+		numDays++;
+		var departure = dataAnomaly ? dataAnomaly[1] : 0;
 		if ( state == "USA" ) {
-			one = _.allData[index].n[2];
-			two = _.allData[index - 7].n[2];
+			sum += _.allData[i].n[2] - _.allData[i - 1].n[2] + departure;
 		}
 		else {
-			one = _.allData[index].getEntry( state )[3];
-			two = _.allData[index - 7].getEntry( state )[3];
+			sum += one = _.allData[i].getEntry( state )[3] - _.allData[i - 1].getEntry( state )[3] + departure;
 		}
-
-		var average = ( one - two ) / 7;
-		// Round to nearest tenth
-		var ret = parseInt( average * 10 + 0.5 ) / 10;
-	}
-	else {
-		var numDays = 0;
-		var sum = 0;
-		for ( var i = index - 6; i <= index; i++ ) {
-			if ( deathsDataAnomaliesForState.has( i ) ) {
-				continue;
-			}
-
-			numDays++;
-			if ( !state || state == "USA" ) {
-				sum += _.allData[i].n[2] - _.allData[i - 1].n[2];
-			}
-			else {
-				sum += one = _.allData[i].getEntry( state )[3] - _.allData[i - 1].getEntry( state )[3];
-			}
-		}
-
-		var average = sum / numDays;
-		// Round to nearest tenth
-		var ret = parseInt( average * 10 + 0.5 ) / 10;
 	}
 
-	if ( ret == -0 ) {
-		return 0;
-	}
-	else {
-		return ret;
-	}
+	var ret = parseInt( sum / numDays + 0.5 );
+	return ret == -0 ? 0 : ret;
 }
 
 _.dateAndTimeFromCalendarFromToday = function() {

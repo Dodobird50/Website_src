@@ -42,7 +42,8 @@ def main():
 			date_tuple = date_to_tuple(today_date, True)
 		else:
 			date_tuple = date_to_tuple(date, False)
-		all_data[date_tuple] = dict(d=list(date_tuple), n=[0, 0, 0], e={})
+		date_index = get_date_index(date.year, date.month, date.day)
+		all_data[date_index] = dict(d=list(date_tuple), n=[0, 0, 0], e={})
 		date += timedelta(days=1)
 
 	for i, link_state in enumerate(link_states_to_state_abbreviations):
@@ -53,8 +54,8 @@ def main():
 		state_population = obj["location"]["metadata"]["population"]
 		total_population += state_population
 		abbreviation = link_states_to_state_abbreviations[link_state]
-		cases_data_anomalies[abbreviation] = []
-		deaths_data_anomalies[abbreviation] = []
+		cases_data_anomalies[abbreviation] = {}
+		deaths_data_anomalies[abbreviation] = {}
 
 		start_date_str = [int(i) for i in obj["location"]["range"][0].split("-")]
 		start_date = datetime(start_date_str[0], start_date_str[1], start_date_str[2], tzinfo=ZoneInfo("America/New_York"))
@@ -65,32 +66,43 @@ def main():
 			index += 1
 
 		while date <= today_date:
-			if date.year == today_date.year and date.month == today_date.month and date.day == today_date.day:
-				date_tuple = date_to_tuple(today_date, True)
-			else:
-				date_tuple = date_to_tuple(date, False)
-			
+			date_index = get_date_index(date.year, date.month, date.day)
 			if index < len(cases):
-				day_data = all_data[date_tuple]
+				day_data = all_data[date_index]
+				if date_index > 0:
+					previous_day_data = all_data[date_index - 1]
 				total_cases = cases[index]
 				total_cases_per_100000 = round(total_cases * 100000 / state_population, 1)
 				total_deaths = deaths[index]
 				day_data["e"][abbreviation] = [abbreviation, total_cases, total_cases_per_100000, total_deaths]
 				day_data["n"][0] += total_cases
 				day_data["n"][2] += total_deaths
+				if date_index > 0 and previous_day_data['e'].get(abbreviation):
+					if total_cases < previous_day_data['e'][abbreviation][1]:
+						cases_data_anomalies[abbreviation][date_index] = [True, 0]
+					if total_deaths < previous_day_data['e'][abbreviation][3]:
+						deaths_data_anomalies[abbreviation][date_index] = [True, 0]
 
 			date += timedelta(days=1)
 			index += 1
 		
 		anomalies = obj["location"]["anomalies"]["date_based"]
 		for anomaly in anomalies:
-			# if anomaly["omit_from_rolling_average"]:
 			anomaly_date = anomaly["date"].split("-")
 			date_index = get_date_index(int(anomaly_date[0]), int(anomaly_date[1]), int(anomaly_date[2]))
+
+			# omit_from_rolling_average = anomaly['category'] in ('dip', 'missing_data', 'recording_adjustment', 'spike', 
+			# 	'changed_data_source', 'added_probables')
+			# if anomaly.get('adjusted_daily_count_for_avg'):
+			# 	adjusted_average = anomaly['adjusted_daily_count_for_avg']
+			# else:
+			# 	adjusted_average = 0
+			anomaly_data = [True, 0]
+
 			if anomaly["type"] in ("cases", "both"):
-				cases_data_anomalies[abbreviation].append(date_index)
+				cases_data_anomalies[abbreviation][date_index] = anomaly_data
 			if anomaly["type"] in ("deaths", "both"):
-				deaths_data_anomalies[abbreviation].append(date_index)
+				deaths_data_anomalies[abbreviation][date_index] = anomaly_data
 
 		bar = "#" * (i + 1)
 		empty = "-" * (len(link_states_to_state_abbreviations) - (i + 1))
@@ -125,17 +137,23 @@ def main():
 	obj = json.loads(
 		requests.get("https://static01.nyt.com/newsgraphics/2021/coronavirus-tracking/data/pages/usa/data.json").text)
 	usa_anomalies = obj["location"]["anomalies"]["date_based"]
-	cases_data_anomalies["USA"] = []
-	deaths_data_anomalies["USA"] = []
+	cases_data_anomalies["USA"] = {}
+	deaths_data_anomalies["USA"] = {}
 	for anomaly in usa_anomalies:
-		# if anomaly["omit_from_rolling_average"]:
 		anomaly_date = anomaly["date"].split("-")
 		date_index = get_date_index(int(anomaly_date[0]), int(anomaly_date[1]), int(anomaly_date[2]))
-		if anomaly["type"] in ("cases", "both"):
-			cases_data_anomalies["USA"].append(date_index)
-		if anomaly["type"] in ("deaths", "both"):
-			deaths_data_anomalies["USA"].append(date_index)
 
+		omit_from_rolling_average = anomaly['omit_from_rolling_average']
+		if anomaly.get('adjusted_daily_count_for_avg'):
+			adjusted_average = anomaly['adjusted_daily_count_for_avg']
+		else:
+			adjusted_average = 0
+		anomaly_data = [omit_from_rolling_average, adjusted_average]
+
+		if anomaly["type"] in ("cases", "both"):
+			cases_data_anomalies['USA'][date_index] = anomaly_data
+		if anomaly["type"] in ("deaths", "both"):
+			deaths_data_anomalies['USA'][date_index] = anomaly_data
 
 	if not force_update and old_all_data is not None and all_data[-1]["n"][0] == old_all_data[-1]["n"][0] and all_data[-1]["n"][2] == old_all_data[-1]["n"][2]:
 		if len(all_data) == len(old_all_data):

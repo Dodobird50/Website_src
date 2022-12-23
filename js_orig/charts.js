@@ -461,12 +461,12 @@ _.chart.setupPolylineOrBars = function( chart ) {
 			
 			if ( _.casesDataAnomalies[chart.state] ) {
 				if ( chart.field == 1 || chart.field == 3 ) {
-					if ( _.casesDataAnomalies[chart.state].has( i + 1 + chart.dateOffset ) ) {
+					if ( _.casesDataAnomalies[chart.state][i + 1 + chart.dateOffset] ) {
 						chart.bars[i].isAnomaly = true;
 					}
 				}
 				else {
-					if ( _.deathsDataAnomalies[chart.state].has( i + 1 + chart.dateOffset ) ) {
+					if ( _.deathsDataAnomalies[chart.state][i + 1 + chart.dateOffset] ) {
 						chart.bars[i].isAnomaly = true;
 					}
 				}
@@ -945,8 +945,6 @@ _.chart.draw = function( chart ) {
 	_.chart.setTitleAndUserInteractionTextTemplate( chart );
 }
 
-
-
 _.chart.applyMiscellaneousFunctions = function( chart ) {
 	chart.resetTitle = function() {
 		var self = this;
@@ -1089,13 +1087,13 @@ _.chart.reflectMouseMove = function( chart, x ) {
 	}
 
 	if ( _.casesDataAnomalies[chart.state] ) {
-		if ( ( chart.field == 1 || chart.field == 3 ) && _.casesDataAnomalies[chart.state].has( i + 1 + chart.dateOffset ) ) {
+		if ( ( chart.field == 1 || chart.field == 3 ) && _.casesDataAnomalies[chart.state][i + 1 + chart.dateOffset] ) {
 			addDataAnomaly();
 		}
 		
 	}
 	if ( _.deathsDataAnomalies[chart.state] ) {
-		if ( chart.field == 5 && _.deathsDataAnomalies[chart.state].has( i + 1 + chart.dateOffset ) ) {
+		if ( chart.field == 5 && _.deathsDataAnomalies[chart.state][i + 1 + chart.dateOffset] ) {
 			addDataAnomaly();
 		}
 	}

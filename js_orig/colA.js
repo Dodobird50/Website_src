@@ -141,7 +141,7 @@ _.refreshDataDisplay = function() {
 				// Due to padding bottom of dataDisplay, if self is the last child of dataDisplay and location
 				// of mouseleave is at the bottom, act as if mouse left dataDisplay altogether
 				if ( self == last && event.clientY > 1 ) {
-					displayNationalStats();
+					_.displayNationalStats();
 				}
 			};
 			row.onmousedown = function( event ) {

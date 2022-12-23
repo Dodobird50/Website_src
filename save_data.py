@@ -35,21 +35,43 @@ def save_data(today_date: datetime, all_data, cases_data_anomalies, deaths_data_
 
 			print_file('\t"cases_data_anomalies": {')
 			i = 0
-			for state_abbreviation, indices in cases_data_anomalies.items():
+			for state_abbreviation, anomalies in cases_data_anomalies.items():
+				print_file(f'\t\t"{state_abbreviation}": {{')
+				j = 0
+				for date, data in anomalies.items():
+					omit_from_daily_average = 'true' if data[0] else 'false'
+					adjusted_seven_day_average = data[1]
+					if j < len(anomalies) - 1:
+						print_file(f'\t\t\t"{date}": [{omit_from_daily_average}, {adjusted_seven_day_average}],')
+					else:
+						print_file(f'\t\t\t"{date}": [{omit_from_daily_average}, {adjusted_seven_day_average}]')
+					j += 1
+
 				if i < len(cases_data_anomalies) - 1:
-					print_file(f'\t\t"{state_abbreviation}": {str(indices)},')
+					print_file('\t\t},')
 				else:
-					print_file(f'\t\t"{state_abbreviation}": {str(indices)}')
+					print_file('\t\t}')
 				i += 1
 			print_file("\t},")
 
 			print_file('\t"deaths_data_anomalies": {')
 			i = 0
-			for state_abbreviation, indices in deaths_data_anomalies.items():
-				if i < len(deaths_data_anomalies) - 1:
-					print_file(f'\t\t"{state_abbreviation}": {str(indices)},')
+			for state_abbreviation, anomalies in deaths_data_anomalies.items():
+				print_file(f'\t\t"{state_abbreviation}": {{')
+				j = 0
+				for date, data in anomalies.items():
+					omit_from_daily_average = 'true' if data[0] else 'false'
+					adjusted_seven_day_average = data[1]
+					if j < len(anomalies) - 1:
+						print_file(f'\t\t\t"{date}": [{omit_from_daily_average}, {adjusted_seven_day_average}],')
+					else:
+						print_file(f'\t\t\t"{date}": [{omit_from_daily_average}, {adjusted_seven_day_average}]')
+					j += 1
+
+				if i < len(cases_data_anomalies) - 1:
+					print_file('\t\t},')
 				else:
-					print_file(f'\t\t"{state_abbreviation}": {str(indices)}')
+					print_file('\t\t}')
 				i += 1
 			print_file("\t}")
 

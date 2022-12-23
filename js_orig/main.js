@@ -308,12 +308,6 @@ var _ = window._;
 
 		_.casesDataAnomalies = allDataFromJSON.cases_data_anomalies;
 		_.deathsDataAnomalies = allDataFromJSON.deaths_data_anomalies;
-		for ( var key in _.casesDataAnomalies ) {
-			_.casesDataAnomalies[key] = new Set( _.casesDataAnomalies[key] )
-		}
-		for ( var key in _.deathsDataAnomalies ) {
-			_.deathsDataAnomalies[key] = new Set( _.deathsDataAnomalies[key] )
-		}
 
         // Will happen if there are currently no cookies
         if ( _.userSettings.sortingMethod == 0 ) {
